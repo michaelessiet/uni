@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -16,9 +15,6 @@ import (
 	"github.com/fatih/color"
 )
 
-// --- Structs for API & CLI Responses ---
-
-// NPMRegistrySearchResult (unchanged)
 type NPMRegistrySearchResult struct {
 	Objects []struct {
 		Package struct {
@@ -35,7 +31,6 @@ type NPMRegistrySearchResult struct {
 	} `json:"objects"`
 }
 
-// New: Structs for `brew info --json=v2` output
 type BrewCliInfoResponse struct {
 	Formulae []struct {
 		Name     string `json:"name"`
@@ -52,7 +47,6 @@ type BrewCliInfoResponse struct {
 	} `json:"casks"`
 }
 
-// CocoaPodsAPISearchResult (unchanged)
 type CocoaPodsAPISearchResult struct {
 	Results []struct {
 		ID      string `json:"id"`
@@ -65,8 +59,6 @@ type CocoaPodsAPISearchResult struct {
 	Total int `json:"total"`
 }
 
-// --- Package Manager Configuration ---
-
 type PackageManagerInfo struct {
 	Name                  string
 	Executable            string
@@ -74,6 +66,7 @@ type PackageManagerInfo struct {
 	InitArgs              []string
 	InstallCmd            string
 	InstallCmdWithoutArgs string // For commands like `npm install` without additional args
+	ExecutionCmd          string // For commands like `npx <command>` or `bunx <command>`
 	UninstallCmd          string
 	SearchAPISupport      bool
 	InstallationHint      string
@@ -81,19 +74,21 @@ type PackageManagerInfo struct {
 
 var supportedManagers = map[string]PackageManagerInfo{
 	// Node
-	"npm":  {Name: "NPM", Executable: "npm", LockFiles: []string{"package-lock.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "install", InstallCmdWithoutArgs: "install", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Node.js and npm from https://nodejs.org/"},
-	"pnpm": {Name: "PNPM", Executable: "pnpm", LockFiles: []string{"pnpm-lock.yaml"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g pnpm"},
-	"yarn": {Name: "Yarn", Executable: "yarn", LockFiles: []string{"yarn.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g yarn"},
-	"bun":  {Name: "Bun", Executable: "bun", LockFiles: []string{"bun.lockb", "bun.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: curl -fsSL https://bun.sh/install | bash"},
+	"npm":  {Name: "NPM", Executable: "npm", LockFiles: []string{"package-lock.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "install", InstallCmdWithoutArgs: "install", ExecutionCmd: "npx", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Node.js and npm from https://nodejs.org/"},
+	"pnpm": {Name: "PNPM", Executable: "pnpm", LockFiles: []string{"pnpm-lock.yaml"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g pnpm"},
+	"yarn": {Name: "Yarn", Executable: "yarn", LockFiles: []string{"yarn.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g yarn"},
+	"bun":  {Name: "Bun", Executable: "bun", LockFiles: []string{"bun.lockb", "bun.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "bunx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: curl -fsSL https://bun.sh/install | bash"},
 	// Cocoapods
 	"pod": {Name: "CocoaPods", Executable: "pod", LockFiles: []string{"Podfile.lock"}, InitArgs: []string{"init"}, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "", SearchAPISupport: true, InstallationHint: "Run: sudo gem install cocoapods"},
 	// System Package Managers
 	"brew": {Name: "Homebrew", Executable: "brew", LockFiles: []string{}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Homebrew from https://brew.sh/"},
-	"pkgx": {Name: "pkgx", Executable: "pkgx", LockFiles: []string{"pkgx.yaml"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: curl -fsS https://pkgx.sh | sh"},
+	"pkgx": {Name: "pkgx", Executable: "pkgx", LockFiles: []string{"pkgx.yaml"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", ExecutionCmd: "pkgx", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: curl -fsS https://pkgx.sh | sh"},
 	// Python
 	"pip":  {Name: "Pip", Executable: "pip", LockFiles: []string{"requirements.txt"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Install Python and pip from https://www.python.org/"},
 	"pipx": {Name: "Pipx", Executable: "pipx", LockFiles: []string{"pipx.json"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: pip install --user pipx && python -m pipx ensurepath"},
 	"uv":   {Name: "uv", Executable: "uv", LockFiles: []string{"uv.lock", "pylock.toml"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "", UninstallCmd: "remove", SearchAPISupport: false, InstallationHint: "Install uv from https://docs.astral.sh/uv"},
+	// Go
+	"go": {Name: "Go", Executable: "go", LockFiles: []string{"go.mod"}, InitArgs: nil, InstallCmd: "get", InstallCmdWithoutArgs: "", UninstallCmd: "get -u", SearchAPISupport: false, InstallationHint: "Install Go from https://golang.org/dl/"},
 }
 
 const uniConfigFile = ".unirc"
@@ -101,7 +96,6 @@ const uniConfigFile = ".unirc"
 var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 func main() {
-	// (main function is unchanged)
 	args := os.Args[1:]
 	if len(args) == 0 {
 		printHelp()
@@ -131,6 +125,28 @@ func main() {
 			manager, _ := detectPackageManager(specifiedManager)
 			handleApiSearch(manager, strings.Join(commandArgs, " "))
 			return
+		case "x", "exec":
+			if len(commandArgs) == 0 {
+				color.Red("Usage: uni x <command> [args...]")
+				os.Exit(1)
+			}
+			manager, _ := detectPackageManager(specifiedManager)
+			color.Cyan("▶️  Executing command: %s %s", manager.ExecutionCmd, strings.Join(commandArgs, " "))
+			var cmd *exec.Cmd
+			switch manager.Name {
+			case "PNPM", "Yarn":
+				cmd = exec.Command(manager.Executable, fmt.Sprintf("%s %s", manager.ExecutionCmd, strings.Join(commandArgs, " ")))
+			default:
+				cmd = exec.Command(manager.ExecutionCmd, commandArgs...)
+			}
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+			if err := cmd.Run(); err != nil {
+				color.Red("Error executing command: %v", err)
+				os.Exit(1)
+			}
+			return
 		}
 	}
 	manager, err := detectPackageManager(specifiedManager)
@@ -141,8 +157,6 @@ func main() {
 	color.Cyan("▶️  Using %s...", manager.Name)
 	executeCliCommand(manager, args)
 }
-
-// --- Search Handlers ---
 
 func handleApiSearch(pm PackageManagerInfo, query string) {
 	if !pm.SearchAPISupport {
@@ -171,15 +185,12 @@ func handleApiSearch(pm PackageManagerInfo, query string) {
 	}
 }
 
-// New: searchHomebrewCliJson uses the local brew command for reliable, structured output.
 func searchHomebrewCliJson(query string) error {
-	// Step 1: Use `brew search` to find potential package names.
 	searchCmd := exec.Command("brew", "search", query)
 	var searchOut bytes.Buffer
 	searchCmd.Stdout = &searchOut
 	if err := searchCmd.Run(); err != nil {
-		// This can happen if search returns no results, which is not a fatal error.
-		// We'll check the output content.
+		color.Yellow("No results found for '%s' in Homebrew search.", query)
 	}
 
 	scanner := bufio.NewScanner(&searchOut)
@@ -192,12 +203,10 @@ func searchHomebrewCliJson(query string) error {
 		}
 		pkgName := strings.Fields(line)[0] // Get the first word of the line
 
-		// Step 2: Use `brew info --json=v2` for each result to get structured data.
 		infoCmd := exec.Command("brew", "info", "--json=v2", pkgName)
 		var infoOut bytes.Buffer
 		infoCmd.Stdout = &infoOut
 		if err := infoCmd.Run(); err != nil {
-			// Skip if info command fails for a specific package
 			continue
 		}
 
@@ -206,7 +215,6 @@ func searchHomebrewCliJson(query string) error {
 			continue // Skip if JSON is unparsable
 		}
 
-		// Print formatted info
 		for _, item := range results.Formulae {
 			resultsFound = true
 			printPackageInfo(map[string]string{
@@ -236,7 +244,6 @@ func searchHomebrewCliJson(query string) error {
 }
 
 func searchNPM(query string) error {
-	// (This function is unchanged)
 	resp, err := httpClient.Get("https://registry.npmjs.org/-/v1/search?text=" + url.QueryEscape(query) + "&size=10")
 	if err != nil {
 		return err
@@ -264,7 +271,6 @@ func searchNPM(query string) error {
 }
 
 func searchCocoaPods(query string) error {
-	// (This function is unchanged)
 	resp, err := httpClient.Get("https://search.cocoapods.org/api/v1/pods.flat.hash.json?query=" + url.QueryEscape(query) + "&amount=10")
 	if err != nil {
 		return err
