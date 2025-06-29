@@ -131,12 +131,13 @@ func main() {
 				os.Exit(1)
 			}
 			manager, _ := detectPackageManager(specifiedManager)
-			color.Cyan("▶️  Executing command: %s %s", manager.ExecutionCmd, strings.Join(commandArgs, " "))
 			var cmd *exec.Cmd
 			switch manager.Name {
 			case "PNPM", "Yarn":
-				cmd = exec.Command(manager.Executable, fmt.Sprintf("%s %s", manager.ExecutionCmd, strings.Join(commandArgs, " ")))
+				color.Cyan("▶️  Executing command: %s %s %s", manager.Executable, manager.ExecutionCmd, strings.Join(commandArgs, " "))
+				cmd = exec.Command(manager.Executable, append([]string{manager.ExecutionCmd}, commandArgs...)...)
 			default:
+				color.Cyan("▶️  Executing command: %s %s", manager.ExecutionCmd, strings.Join(commandArgs, " "))
 				cmd = exec.Command(manager.ExecutionCmd, commandArgs...)
 			}
 			cmd.Stdout = os.Stdout
