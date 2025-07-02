@@ -1,3 +1,3 @@
 # Uni
 
-The universal package manager.
+The universal package manager wrapper.
