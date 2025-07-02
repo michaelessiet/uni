@@ -63,6 +63,7 @@ type PackageManagerInfo struct {
 	Name                  string
 	Executable            string
 	LockFiles             []string
+	MetadataFiles         []string // Files like package.json, Podfile, etc.
 	InitArgs              []string
 	InstallCmd            string
 	InstallCmdWithoutArgs string // For commands like `npm install` without additional args
@@ -74,21 +75,21 @@ type PackageManagerInfo struct {
 
 var supportedManagers = map[string]PackageManagerInfo{
 	// Node
-	"npm":  {Name: "NPM", Executable: "npm", LockFiles: []string{"package-lock.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "install", InstallCmdWithoutArgs: "install", ExecutionCmd: "npx", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Node.js and npm from https://nodejs.org/"},
-	"pnpm": {Name: "PNPM", Executable: "pnpm", LockFiles: []string{"pnpm-lock.yaml"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g pnpm"},
-	"yarn": {Name: "Yarn", Executable: "yarn", LockFiles: []string{"yarn.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g yarn"},
-	"bun":  {Name: "Bun", Executable: "bun", LockFiles: []string{"bun.lockb", "bun.lock"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "bunx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: curl -fsSL https://bun.sh/install | bash"},
+	"npm":  {Name: "NPM", Executable: "npm", LockFiles: []string{"package-lock.json"}, MetadataFiles: []string{"package.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "install", InstallCmdWithoutArgs: "install", ExecutionCmd: "npx", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Node.js and npm from https://nodejs.org/"},
+	"pnpm": {Name: "PNPM", Executable: "pnpm", LockFiles: []string{"pnpm-lock.yaml"}, MetadataFiles: []string{"package.json"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g pnpm"},
+	"yarn": {Name: "Yarn", Executable: "yarn", LockFiles: []string{"yarn.lock"}, MetadataFiles: []string{"package.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "dlx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: npm install -g yarn"},
+	"bun":  {Name: "Bun", Executable: "bun", LockFiles: []string{"bun.lockb", "bun.lock"}, MetadataFiles: []string{"package.json"}, InitArgs: []string{"init", "-y"}, InstallCmd: "add", InstallCmdWithoutArgs: "install", ExecutionCmd: "bunx", UninstallCmd: "remove", SearchAPISupport: true, InstallationHint: "Run: curl -fsSL https://bun.sh/install | bash"},
 	// Cocoapods
-	"pod": {Name: "CocoaPods", Executable: "pod", LockFiles: []string{"Podfile.lock"}, InitArgs: []string{"init"}, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "", SearchAPISupport: true, InstallationHint: "Run: sudo gem install cocoapods"},
+	"pod": {Name: "CocoaPods", Executable: "pod", LockFiles: []string{"Podfile.lock"}, MetadataFiles: []string{"Podfile"}, InitArgs: []string{"init"}, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "", SearchAPISupport: true, InstallationHint: "Run: sudo gem install cocoapods"},
 	// System Package Managers
-	"brew": {Name: "Homebrew", Executable: "brew", LockFiles: []string{}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Homebrew from https://brew.sh/"},
+	"brew": {Name: "Homebrew", Executable: "brew", LockFiles: []string{}, MetadataFiles: nil, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: true, InstallationHint: "Install Homebrew from https://brew.sh/"},
 	"pkgx": {Name: "pkgx", Executable: "pkgx", LockFiles: []string{"pkgx.yaml"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", ExecutionCmd: "pkgx", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: curl -fsS https://pkgx.sh | sh"},
 	// Python
-	"pip":  {Name: "Pip", Executable: "pip", LockFiles: []string{"requirements.txt"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Install Python and pip from https://www.python.org/"},
-	"pipx": {Name: "Pipx", Executable: "pipx", LockFiles: []string{"pipx.json"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: pip install --user pipx && python -m pipx ensurepath"},
-	"uv":   {Name: "uv", Executable: "uv", LockFiles: []string{"uv.lock", "pylock.toml"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "", UninstallCmd: "remove", SearchAPISupport: false, InstallationHint: "Install uv from https://docs.astral.sh/uv"},
+	"pip":  {Name: "Pip", Executable: "pip", LockFiles: []string{"requirements.txt", "Pipfile.lock"}, MetadataFiles: []string{"setup.py", "pyproject.toml", "Pipfile"}, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Install Python and pip from https://www.python.org/"},
+	"pipx": {Name: "Pipx", Executable: "pipx", LockFiles: []string{"pipx.json"}, MetadataFiles: nil, InitArgs: nil, InstallCmd: "install", InstallCmdWithoutArgs: "", UninstallCmd: "uninstall", SearchAPISupport: false, InstallationHint: "Run: pip install --user pipx && python -m pipx ensurepath"},
+	"uv":   {Name: "uv", Executable: "uv", LockFiles: []string{"uv.lock", "pylock.toml"}, MetadataFiles: []string{"pyproject.toml", "requirements.txt", "Pipfile"}, InitArgs: []string{"init"}, InstallCmd: "add", InstallCmdWithoutArgs: "", UninstallCmd: "remove", SearchAPISupport: false, InstallationHint: "Install uv from https://docs.astral.sh/uv"},
 	// Go
-	"go": {Name: "Go", Executable: "go", LockFiles: []string{"go.mod"}, InitArgs: nil, InstallCmd: "get", InstallCmdWithoutArgs: "", UninstallCmd: "get -u", SearchAPISupport: false, InstallationHint: "Install Go from https://golang.org/dl/"},
+	"go": {Name: "Go", Executable: "go", LockFiles: []string{"go.sum"}, MetadataFiles: []string{"go.mod"}, InitArgs: nil, InstallCmd: "get", InstallCmdWithoutArgs: "", UninstallCmd: "get -u", SearchAPISupport: false, InstallationHint: "Install Go from https://golang.org/dl/"},
 }
 
 const uniConfigFile = ".unirc"
@@ -361,6 +362,14 @@ func detectPackageManager(specifiedManager string) (PackageManagerInfo, error) {
 			for _, lockFile := range pm.LockFiles {
 				if _, err := os.Stat(lockFile); err == nil {
 					color.Yellow("Found '%s' lock file, using %s.", lockFile, pm.Name)
+					return pm, nil
+				}
+			}
+		}
+		if len(pm.MetadataFiles) > 0 {
+			for _, metadataFile := range pm.MetadataFiles {
+				if _, err := os.Stat(metadataFile); err == nil {
+					color.Yellow("Found '%s' metadata file, using %s.", metadataFile, pm.Name)
 					return pm, nil
 				}
 			}
