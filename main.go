@@ -358,20 +358,18 @@ func detectPackageManager(specifiedManager string) (PackageManagerInfo, error) {
 		}
 	}
 	for key, pm := range supportedManagers {
-		if len(pm.LockFiles) > 0 {
-			for _, lockFile := range pm.LockFiles {
-				if _, err := os.Stat(lockFile); err == nil {
-					color.Yellow("Found '%s' lock file, using %s.", lockFile, pm.Name)
-					return pm, nil
-				}
+		// Check for lock files first
+		for _, lockFile := range pm.LockFiles {
+			if _, err := os.Stat(lockFile); err == nil {
+				color.Yellow("Found '%s' lock file, using %s.", lockFile, pm.Name)
+				return pm, nil
 			}
 		}
-		if len(pm.MetadataFiles) > 0 {
-			for _, metadataFile := range pm.MetadataFiles {
-				if _, err := os.Stat(metadataFile); err == nil {
-					color.Yellow("Found '%s' metadata file, using %s.", metadataFile, pm.Name)
-					return pm, nil
-				}
+		// Then check for metadata files
+		for _, metadataFile := range pm.MetadataFiles {
+			if _, err := os.Stat(metadataFile); err == nil {
+				color.Yellow("Found '%s' metadata file, using %s.", metadataFile, pm.Name)
+				return pm, nil
 			}
 		}
 		if key == "pod" {
